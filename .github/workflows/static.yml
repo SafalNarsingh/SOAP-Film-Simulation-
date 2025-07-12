@@ -37,7 +37,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: 'SOAP-Film-Simulation/Final_simulation.html'
+          path: 'SOAP-Film-Simulation/final_simulation.html'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

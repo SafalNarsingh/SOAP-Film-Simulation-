@@ -285,7 +285,7 @@ tryCatch({
       name = "Top Outline"
     ) %>%
     layout(
-      title = "Top Lifted Outline (Fallback)",
+      # title = "Top Lifted Outline (Fallback)",
       scene = list(
         xaxis = list(title = "x"),
         yaxis = list(title = "y"),
@@ -320,7 +320,7 @@ tryCatch({
   
   fig2 <- fig2 %>%
     layout(
-      title = "Soap Film Using Basic FEM Modeling (Fallback)",
+      # title = "Soap Film Using Basic FEM Modeling (Fallback)",
       scene = list(
         xaxis = list(title = "x"),
         yaxis = list(title = "y"),

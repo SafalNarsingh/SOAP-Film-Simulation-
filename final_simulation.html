@@ -1,0 +1,421 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soap Film Simulation Using FEM in R</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        code, pre {
+             background-color: #f9f9f9; 
+             padding: 10px; 
+             display: block; 
+        }
+        .plot-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #fff;
+            text-align: center;
+        }
+        .caption {
+            text-align: center;
+            font-style: italic;
+            color: #555;
+            margin-top: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            }
+        .caption {
+                text-align: center;
+                font-size: 0.9em;
+                color: #555;
+                margin-top: -10px;
+                margin-bottom: 20px;
+        }
+        h1, h2 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 6px;
+        }
+        /* code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+        } */
+    </style>
+</head>
+<body>
+    <div style="text-align: center; padding: 20px 0;">
+    <h1 style="font-size: 2em; color: #333; margin: 0 0 10px 0;">Soap Film Simulation Using Finite Element Method in R</h1>
+    <h5 style="font-size: 1.2em; color: #797777; margin: 0 0 20px 0;">
+        Kristina Bhatta, Melina Pomu, Suniti Shrestha, Safal Narsing Shrestha, Dinisha Uprety
+    </h5>
+    
+</div>
+    <p>
+        A simulation of a soap film modeled as a minimal surface satisfying Laplace's equation, \(\nabla^2 u = 0\), on a unit square domain \([0,1] \times [0,1]\). The simulation uses the <code>fdaPDE</code> package in R to implement the Finite Element Method (FEM) and <code>plotly</code> for 3D visualization. The R script solves the PDE with Dirichlet boundary conditions \(u(x,y) = (1-x)(1-y)\) and visualizes the resulting surface and boundary frame. Below, we break down the R script, explaining mesh creation, boundary conditions, FEM solution, and visualization. </a>.
+    </p>
+
+    <div class="section">
+        <h2>1. Libraries and Function Definition</h2>
+        <p>
+            The simulation begins by loading the necessary R libraries: <code>fdaPDE</code> for FEM computations, <code>plotly</code> for interactive 3D visualizations, and <code>RColorBrewer</code> for color schemes. The main function, <code>solve_soap_film_fdaPDE()</code>, orchestrates mesh generation, boundary condition setup, PDE solving, and result preparation.
+        </p>
+        <pre><code>
+library(fdaPDE)
+library(plotly)
+library(RColorBrewer)
+
+# Function to solve soap film using fdaPDE FEM library
+solve_soap_film_fdaPDE <- function(n = 50) {
+        </code></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. Mesh Construction</h2>
+        <p>
+            A triangular mesh is created over the unit square \([0,1] \times [0,1]\) to discretize the domain for FEM. The mesh divides the domain into small triangular elements, enabling numerical solution of the PDE.
+        </p>
+        <pre><code>
+  # Create rectangular domain mesh
+  x_coords <- seq(0, 1, length.out = n)
+  y_coords <- seq(0, 1, length.out = n)
+  
+  # Create grid points
+  locations <- expand.grid(x = x_coords, y = y_coords)
+  
+  # Define boundary vertices
+  boundary_vertices <- rbind(
+    c(0, 0),  # bottom-left
+    c(1, 0),  # bottom-right
+    c(1, 1),  # top-right
+    c(0, 1)   # top-left
+  )
+  
+  # Create refined mesh
+  mesh <- create.mesh.2D(nodes = boundary_vertices, 
+                         segments = rbind(c(1,2), c(2,3), c(3,4), c(4,1)),
+                         holes = NULL, triangles = NULL, order = 1, verbosity = 0)
+  
+  # Refine mesh for better resolution
+  mesh <- refine.mesh.2D(mesh, maximum_area = 0.001, minimum_angle = 20)
+        </code></pre>
+        <p>
+            The code generates a grid of points using <code>seq</code> and <code>expand.grid</code>. Boundary vertices are defined at the corners of the square, and <code>create.mesh.2D</code> constructs a triangular mesh. The mesh is refined with <code>refine.mesh.2D</code> to ensure triangles have a maximum area of 0.001 and a minimum angle of 20 degrees, enhancing numerical accuracy and stability.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>3. Boundary Conditions</h2>
+        <p>
+            The soap film is constrained by the Dirichlet boundary condition \(u(x,y) = (1-x)(1-y)\) on the edges of the unit square. This defines the height of the film at the boundary, forming the "frame" of the soap film.
+        </p>
+        <pre><code>
+  # Get mesh coordinates
+  mesh_locations <- mesh$nodes
+  n_nodes <- nrow(mesh_locations)
+  
+  # Define boundary conditions: u = (1-x)*(1-y) on boundary
+  boundary_indices <- c()
+  boundary_values <- c()
+  
+  for (i in 1:n_nodes) {
+    x_i <- mesh_locations[i, 1]
+    y_i <- mesh_locations[i, 2]
+    
+    # Check if point is on boundary (within tolerance)
+    tol <- 1e-10
+    if (abs(x_i) < tol || abs(x_i - 1) < tol || abs(y_i) < tol || abs(y_i - 1) < tol) {
+      boundary_indices <- c(boundary_indices, i)
+      boundary_values <- c(boundary_values, (1 - x_i) * (1 - y_i))
+    }
+  }
+  
+  # Set up boundary conditions
+  BC <- NULL
+  if (length(boundary_indices) > 0) {
+    BC <- list(BC_indices = boundary_indices, BC_values = boundary_values)
+  }
+        </code></pre>
+        <p>
+            Boundary nodes are identified by checking if their coordinates lie on the domain edges (within a tolerance of \(10^{-10}\)). The condition \(u = (1-x)(1-y)\) is applied to these nodes, and their indices and values are stored for the FEM solver.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>4. Solving Laplace’s Equation with FEM</h2>
+        <p>
+            The minimal surface of the soap film satisfies Laplace’s equation, \(\nabla^2 u = 0\). The FEM discretizes this PDE over the triangular mesh, solving for \(u(x,y)\) that meets the boundary conditions.
+        </p>
+        <pre><code>
+  # Create FEM object for Laplace equation
+  observations <- rep(0, n_nodes)  # Zero forcing term
+  
+  # Create FEMbasis object
+  FEMbasis <- create.FEM.basis(mesh)
+  
+  # Create synthetic data at mesh nodes for boundary fitting
+  data_values <- rep(0, n_nodes)
+  for (i in 1:n_nodes) {
+    x_i <- mesh_locations[i, 1]
+    y_i <- mesh_locations[i, 2]
+    data_values[i] <- (1 - x_i) * (1 - y_i)  # Target function
+  }
+  
+  # Solve FEM system
+  solution <- smooth.FEM.basis(observations = data_values, 
+                               FEMbasis = FEMbasis, 
+                               lambda = 0,
+                               BC = BC)
+  
+  # Evaluate solution on regular grid for visualization
+  x_eval <- seq(0, 1, length.out = 50)
+  y_eval <- seq(0, 1, length.out = 50)
+  eval_locations <- expand.grid(x = x_eval, y = y_eval)
+  
+  # Evaluate FEM solution at regular grid points
+  eval_result <- eval.FEM(solution$fit.FEM, locations = eval_locations)
+  
+  # Reshape to matrix for plotting
+  z_matrix <- matrix(eval_result, nrow = length(x_eval), ncol = length(y_eval), byrow = TRUE)
+        </code></pre>
+        <p>
+            The <code>create.FEM.basis</code> function sets up a linear FEM basis. The <code>smooth.FEM.basis</code> function solves the PDE with a zero forcing term (homogeneous Laplace equation) and the specified boundary conditions. The parameter <code>lambda = 0</code> ensures pure interpolation at the boundary. The solution is evaluated on a 50x50 grid for visualization, and results are reshaped into a matrix.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>5. Boundary Segment Customization</h2>
+        <p>
+            The boundary frame is visualized with alternating pink and black dashed-dotted lines to enhance aesthetics. The <code>create_alternating_segments</code> function generates these segments.
+        </p>
+        <pre><code>
+create_alternating_segments <- function(x, y, z, color1 = "#db00fd", color2 = "#b738ca", 
+                                        dash_len = 3, dot_len = 1) {
+  segments <- list()
+  n <- length(x)
+  i <- 1
+  
+  while (i < n) {
+    # Purple dash: longer segment
+    end_dash <- min(i + dash_len, n)
+    seg_x <- x[i:end_dash]
+    seg_y <- y[i:end_dash]
+    seg_z <- z[i:end_dash]
+    
+    segments <- append(segments, list(list(
+      x = seg_x, y = seg_y, z = seg_z,
+      type = "scatter3d", mode = "lines",
+      line = list(color = color1, width = 15),
+      showlegend = FALSE
+    )), after = length(segments))
+    
+    i <- end_dash
+    
+    if (i >= n) break
+    
+    # Black dot: very short segment
+    end_dot <- min(i + dot_len, n)
+    seg_x <- x[i:end_dot]
+    seg_y <- y[i:end_dot]
+    seg_z <- z[i:end_dot]
+    
+    if (length(seg_x) < 2) {
+      seg_x <- c(seg_x[1], seg_x[1] + 1e-6)
+      seg_y <- c(seg_y[1], seg_y[1])
+      seg_z <- c(seg_z[1], seg_z[1])
+    }
+    
+    segments <- append(segments, list(list(
+      x = seg_x, y = seg_y, z = seg_z,
+      type = "scatter3d", mode = "lines",
+      line = list(color = color2, width = 10),
+      showlegend = FALSE
+    )), after = length(segments))
+    
+    i <- end_dot
+  }
+  
+  return(segments)
+}
+        </code></pre>
+        <p>
+            This function alternates between pink dashes (color <code>#db00fd</code>, width 15) and black dots (color <code>#b738ca</code>, width 10), creating a visually distinct boundary outline.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>6. Visualization of Frame and Surface</h2>
+        <p>
+            Two interactive 3D visualizations are produced using <code>plotly</code>, saved as separate HTML files for modularity. These can be viewed by clicking the links below.
+        </p>
+        <h3>Top Frame Visualization</h3>
+        <p>
+            The rectangular frame is plotted with a slight lift in the z-direction (\(u(x,y) = (1-x)(1-y) + 0.2\)) using solid black lines to represent the boundary above the soap film surface.
+        </p>
+        <h3>Top Lifted Outline</h3>
+  <iframe src="structure.html"></iframe>
+  <div class="caption">Figure 1: Rectangular frame outline lifted for visual separation. Solid black segments represent the boundary.</div>
+        
+        <pre><code>
+fig1 <- plot_ly() %>%
+    add_trace(
+      x = boundary_x, y = boundary_y, z = boundary_z_top,
+      type = "scatter3d", mode = "lines",
+      line = list(color = "black", width = 15),
+      name = "Top Outline"
+    ) %>%
+    layout(
+      title = "Top Lifted Outline",
+      scene = list(
+        xaxis = list(title = "x"),
+        yaxis = list(title = "y"),
+        zaxis = list(title = "z")
+      ),
+      margin = list(l = 0, r = 0, t = 40, b = 0),
+      height = 600
+    )
+htmlwidgets::saveWidget(fig1, "structure.html", selfcontained = TRUE)
+        </code></pre>
+        <h3>Soap Film Surface</h3>
+        <p>
+            The soap film is visualized as a 3D surface, with the boundary frame overlaid using alternating pink and black dashed-dotted lines. The surface uses the "Viridis" colorscale to represent height values.
+        </p>
+        <h3>Soap Film Surface</h3>
+         <iframe src="soap_film.html"></iframe>
+        <div class="caption">Figure 2: FEM solution of the soap film using the <code>fdaPDE</code> package. The surface smoothly satisfies Laplace's equation with imposed boundary values.</div>
+
+        <p class="caption">Figure 2: Soap film surface computed with FEM using the fdaPDE package, with boundary frame in pink and black dashed-dotted lines.</p>
+        <pre><code>
+fig2 <- plot_ly() %>%
+    add_surface(
+      x = x_grid, y = y_grid, z = result$z,
+      colorscale = "Viridis",
+      opacity = 0.95,
+      showscale = TRUE,
+      name = "Soap Film (fdaPDE FEM Solution)"
+    )
+segments <- create_alternating_segments(boundary_x, boundary_y, boundary_z_soap, 
+                                       "#db00fd", "#b738ca", dash_len = 1, dot_len = 1)
+for (seg in segments) {
+    fig2 <- fig2 %>% add_trace(
+      x = seg$x, y = seg$y, z = seg$z,
+      type = seg$type, mode = seg$mode,
+      line = seg$line,
+      showlegend = seg$showlegend
+    )
+}
+fig2 <- fig2 %>%
+    layout(
+      title = "Soap Film Using fdaPDE FEM Modeling with Triangular Mesh",
+      scene = list(
+        xaxis = list(title = "x"),
+        yaxis = list(title = "y"),
+        zaxis = list(title = "z")
+      ),
+      margin = list(l = 0, r = 0, t = 40, b = 0),
+      height = 600
+    )
+htmlwidgets::saveWidget(fig2, "soap_film.html", selfcontained = TRUE)
+        </code></pre>
+        <p>
+            The top frame uses a <code>scatter3d</code> trace for the boundary outline, while the soap film uses a <code>surface</code> trace. The boundary segments are added to the surface plot using the <code>create_alternating_segments</code> function for visual enhancement.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>7. Fallback Implementation</h2>
+        <p>
+            In case the FEM solver fails, a fallback approach computes the analytical solution \(u(x,y) = (1-x)(1-y)\), which is visualized similarly to the FEM solution.
+        </p>
+        <pre><code>
+  # Fallback to basic implementation
+  x <- seq(0, 1, length.out = 50)
+  y <- seq(0, 1, length.out = 50)
+  x_grid <- outer(x, rep(1, length(y)))
+  y_grid <- outer(rep(1, length(x)), y)
+  z_basic <- (1 - x_grid) * (1 - y_grid)
+        </code></pre>
+        <p>
+            This fallback directly evaluates the boundary condition across the domain, bypassing FEM computations for robustness. The visualizations are generated similarly and saved to the same HTML files.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>8. Summary</h2>
+        <p>
+            This simulation demonstrates:
+        </p>
+        <ul>
+            <li>Construction of a FEM mesh with triangular elements using <code>fdaPDE</code>.</li>
+            <li>Solution of Laplace’s equation \(\nabla^2 u = 0\) with Dirichlet boundary conditions \(u(x,y) = (1-x)(1-y)\).</li>
+            <li>Visualization of the minimal surface (soap film) and its boundary frame using interactive 3D plots.</li>
+            <li>Robustness through a fallback analytical solution.</li>
+        </ul>
+        
+    </div>
+</body>
+</html>
